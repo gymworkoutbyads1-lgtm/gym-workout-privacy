@@ -1,7 +1,7 @@
 import {parseAction,validatePassword,friendlyError,createResetClient} from './reset-client.mjs';
-import {apiKey} from './reset-config.mjs';
+import {apiKey,actionLinkKeys} from './reset-config.mjs';
 const $ = id => document.getElementById(id);
-const action = parseAction(location.href,apiKey);
+const action = parseAction(location.href,apiKey,actionLinkKeys);
 // Keep action codes out of subsequent navigation, referrers, and screenshots.
 history.replaceState(null,'',location.pathname);
 const client = createResetClient(apiKey);
@@ -28,3 +28,4 @@ $('reset-form').addEventListener('submit',async event=>{
 if(action.kind==='fallback')location.replace(action.url);
 else if(action.kind==='reset')verify();
 else terminal('Let’s get you back in.','To reset your password, open Gym & Workout by ADS, select Forgot password, and follow the link in your latest reset email.');
+

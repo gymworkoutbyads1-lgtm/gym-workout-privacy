@@ -1,9 +1,9 @@
-export function parseAction(url, expectedKey) {
+export function parseAction(url, expectedKey, acceptedLinkKeys = [expectedKey]) {
   const p = new URL(url).searchParams;
   const mode = p.get('mode');
   const code = p.get('oobCode');
   if (p.getAll('mode').length !== 1 || p.getAll('oobCode').length !== 1 || !code || code.length > 2048 || /\s/.test(code)) return {kind:'invalid'};
-  if (p.get('apiKey') && p.get('apiKey') !== expectedKey) return {kind:'invalid'};
+  if (p.getAll('apiKey').length > 1 || (p.has('apiKey') && !acceptedLinkKeys.includes(p.get('apiKey')))) return {kind:'invalid'};
   if (mode === 'resetPassword') return {kind:'reset', code};
   // Firebase shares action-handler configuration across email templates.
   // Keep verification and recovery on its existing, trusted hosted handler.
@@ -30,7 +30,7 @@ export function friendlyError(code) {
 export function createResetClient(apiKey, fetcher = fetch, endpoint = 'https://identitytoolkit.googleapis.com/v1') {
   async function request(payload) {
     let response;
-    try { response = await fetcher(`${endpoint}/accounts:resetPassword?key=${encodeURIComponent(apiKey)}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:AbortSignal.timeout(20000)}); }
+    try { response = await fetcher(`${endpoint}/accounts:resetPassword?key=${encodeURIComponent(apiKey)}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),credentials:'omit',cache:'no-store',referrerPolicy:'strict-origin',signal:AbortSignal.timeout(20000)}); }
     catch { throw new Error('NETWORK_ERROR'); }
     let result; try { result = await response.json(); } catch { throw new Error('INVALID_RESPONSE'); }
     if(!response.ok) throw new Error(result.error?.message || 'REQUEST_FAILED');
@@ -39,3 +39,4 @@ export function createResetClient(apiKey, fetcher = fetch, endpoint = 'https://i
   }
   return {verify:code=>request({oobCode:code}),confirm:(code,password)=>request({oobCode:code,newPassword:password})};
 }
+
